@@ -1,6 +1,7 @@
 <p align="center">
   <img src="https://github.com/lesscript/lesscript/blob/main/.github/lesscript.png" alt="Lesscript Logo" width="140px"><br>
-  A statically typed rock & roll language that can compile, bundle & minify beautiful poetries to JavaScript ES6.
+  A statically typed rock & roll language that can compile,<br>
+  bundle & minify beautiful poetries to JavaScript ES6.
 </p>
 
 <p align="center">
