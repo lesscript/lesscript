@@ -29,5 +29,5 @@
 - 🥰 [Donate to OpenPeeps via PayPal address](https://www.paypal.com/donate/?hosted_button_id=RJK3ZTDWPL55C)
 
 ### 🎩 License
-Lesscript [LGPLv3 license](https://github.com/openpeeps/bro/blob/main/LICENSE). Proudly made in 🇪🇺 Europe [by Humans from OpenPeeps](https://github.com/openpeeps).<br>
+Lesscript [LGPLv3 license](https://github.com/lesscript/lesscript/blob/main/LICENSE). Proudly made in 🇪🇺 Europe [by Humans from OpenPeeps](https://github.com/openpeeps).<br>
 Copyright &copy; 2023 Lesscript | OpenPeeps & Contributors &mdash; All rights reserved.
