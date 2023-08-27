@@ -21,6 +21,17 @@
 > [!NOTE]
 > Since Lesscript is written in native code, anti-virus software can sometimes incorrectly flag it as a virus
 
+## TODO
+`0.1.x`
+- [ ] Tokens, Parser, AST, Compiler
+- [ ] Backends
+  - [ ] JavaScript ES6
+  - [ ] Nim language
+- [ ] Command Line Interface
+  - [ ] `c` command
+  - [ ] `ast` command to generate static binary AST
+  - [ ] `watch` command with built-in Browser Sync & Reload
+  - [ ] `doc` command to generate documentation website
 
 ### ❤ Contributions & Support
 - 🐛 Found a bug? [Create a new Issue](https://github.com/lesscript/lesscript/issues)
