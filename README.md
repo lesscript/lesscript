@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://github.com/lesscript/lesscript/blob/main/.github/lesscript.png" alt="Lesscript Logo" width="140px"><br>
-  A statically typed rock'n'roll language that compiles to JavaScript and Nim.
+  A statically typed rock'n'roll language that transpiles to JavaScript and Nim.
 </p>
 
 <p align="center">
