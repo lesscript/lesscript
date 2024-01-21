@@ -1,9 +1,9 @@
-# A fast, statically typed Rock'n'Roll language that
-# transpiles to Nim lang and JavaScript.
-# 
-# (c) 2023 George Lemon | LGPLv3 License
+# A high-performance, statically typed Rock'n'Roll language
+# with Nim and JavaScript transpilation capabilities
+#
+# (c) 2024 George Lemon | LGPLv3 License
 #          Made by Humans from OpenPeeps
-#          https://github.com/openpeeps
+#          https://github.com/lesscript
 #          https://lesscript.com
 
 import toktok
@@ -22,6 +22,16 @@ const toktokSettings* =
     keepChar: true,
   )
 
+template setDocTypeParam(str: var string) {.dirty.} =
+  str.add(lex.buf[lex.bufpos])
+  inc lex.bufpos
+  while true:
+    case lex.current
+    of IdentChars:
+      str.add(lex.buf[lex.bufpos])
+      inc lex.bufpos
+    else: break
+
 handlers:
   proc handleDocBlock(lex: var Lexer, kind: TokenKind) =
     while true:
@@ -31,11 +41,70 @@ handlers:
         if lex.current == '/':
           add lex
           break
+      of '@':
+        if lex.next("param"):
+          inc lex.bufpos, 6
+          skip lex
+          if lex.current == '{':
+            var ptype, pname, pdesc: string
+            var pdefault = "="
+            inc lex.bufpos
+            while true:
+              case lex.current:
+              of '}':
+                inc lex.bufpos
+                skip lex # skip whitespaces
+                while true:
+                  case lex.current:
+                  of IdentStartChars:
+                    # collect param name
+                    setDocTypeParam(pname)
+                  else: break
+              of '[':
+                # collect ident name with an implicit default value
+                # Example: [name = John Do]
+                inc lex.bufpos
+                skip lex # skip whitespaces
+                while true:
+                  case lex.current:
+                  of IdentStartChars:
+                    # param name
+                    setDocTypeParam(pname)
+                  of '=':
+                    # default value
+                    inc lex.bufpos
+                    skip lex
+                    setDocTypeParam(pdefault)
+                  of ']':
+                    inc lex.bufpos
+                    break
+                  else: break
+              of IdentStartChars:
+                # collect ident type 
+                setDocTypeParam(ptype)
+              else: break
+            lex.attr.add(pname & ":" & ptype & pdefault)
+        elif lex.next("return"):
+          inc lex.bufpos, 7
+        else:
+          add lex
       of NewLines:
         inc lex.lineNumber
-        add lex        
+        add lex
       of EndOfFile: break
       else: add lex
+    lex.kind = kind
+
+  proc handleInlineComment(lex: var Lexer, kind: TokenKind) =
+    inc lex.bufpos
+    while true:
+      case lex.buf[lex.bufpos]:
+        of NewLines:
+          lex.handleNewLine()
+          break
+        of EndOfFile: break
+        else:
+          inc lex.bufpos
     lex.kind = kind
 
   proc handleSingleQuote(lex: var Lexer, kind: TokenKind) =
@@ -60,30 +129,40 @@ handlers:
       add lex
 
 registerTokens toktokSettings:
-  plus = '+'
-  minus = '-'
-  multi = '*'
+  # https://github.com/Constellation/iv/blob/master/iv/token.h
+  plus = '+':
+    asgnAdd = '='
+  minus = '-':
+    asgnSub = '='
+  multi = '*':
+    asgnMulti = '='
   `div` = '/':
     doc = tokenize(handleDocBlock, '*')
-    comment = '/' .. EOL
-  `mod` =  '%'
+    comment = tokenize(handleInlineComment, '/')
+  `mod` =  '%':
+    asgnMod = '='
   assign = '=':
     eq = '='
     arrExp = '>'
   `not` = '!':
     ne = '='
   bitwise = '|':
+    asgnBitOr = '='
     `or` = '|'
   gt = '>':
+    asgnSar = ">="
+    asgnShr = ">>="
     gte = '='
   lt = '<':
     lte = '='
   qmark = '?'
-  square = '^'
+  square = '^':
+    asgnBitXor = '='
   tilde = '~'
   hash = '#'
-  `and` = '&'
-    # `and2` = '&' or `concat` = '='
+  amp = '&':
+    `and` = '&'
+    andAsgn = "&=" # asgnBitAnd
   lp = '('
   rp = ')'
   lb = '['
@@ -94,6 +173,10 @@ registerTokens toktokSettings:
   scolon = ';'
   comma = ','
   dot = '.'
+  at = '@':
+    htmlTag = "html"
+    timlTag = "timl"
+    bassTag = "bass"
   sQuoteString = tokenize(handleSingleQuote, '\'')
 
   litArray = "array"
@@ -128,6 +211,7 @@ registerTokens toktokSettings:
   `static` = "static"
 
   `await` = "await"
+  `assert` = "assert"
   `bool` = ["true", "false"]
   `break` = "break"
   `case` = "case"
