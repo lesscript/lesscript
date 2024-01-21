@@ -23,6 +23,7 @@ requires "watchout#head"
 requires "https://github.com/georgelemon/jsony#add-critbits-support"
 requires "httpx", "websocketx"
 requires "flatty", "supersnappy"
+requires "https://github.com/openpeeps/importer"
 
 task dev, "dev build":
   exec "nimble build"
@@ -30,8 +31,8 @@ task dev, "dev build":
 task prod, "prod build":
   exec "nimble build -d:release"
 
-task plugin, "build a sample plugin":
-  exec "nim c --app:lib --noMain --mm:arc --out:./bin/plugin.so examples/plugin.nim"
+# task plugin, "build a sample plugin":
+#   exec "nim c --app:lib --noMain --mm:arc --out:./bin/plugin.so examples/plugin.nim"
 
-task pluginp, "build a sample plugin":
-  exec "nim c --app:lib --noMain --mm:arc -d:release --out:./bin/plugin.so examples/plugin.nim"
+# task pluginp, "build a sample plugin":
+#   exec "nim c --app:lib --noMain --mm:arc -d:release --out:./bin/plugin.so examples/plugin.nim"
