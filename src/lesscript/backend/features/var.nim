@@ -12,7 +12,7 @@ elif declared jsc:
   #
   # Transpiler - Handle variable declaration
   #
-  newHandler "handleVarDecl":
+  newHandler handleVarDecl:
     if likely(not c.inCurrentScope(node.varIdent, scope)):
       if c.typeCheckAssign(node, scope):
         if node.varValue != nil:

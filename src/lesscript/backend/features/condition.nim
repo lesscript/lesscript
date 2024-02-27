@@ -12,7 +12,7 @@ elif declared jsc:
   #
   # Transpiler - Handle Conditional Statements
   #
-  newHandler "handleCond":
+  newHandler handleCond:
     if unlikely(node.ifBranch.body.stmtNode.list.len == 0):
       compileWarning(emptyBlockStatement, ["if"], node.meta)
     write js_if_def(c, node.meta, c.getInfix(node.ifBranch.cond, scope))

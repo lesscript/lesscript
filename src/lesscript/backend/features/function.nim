@@ -24,7 +24,7 @@ elif declared jsc:
         add jsParams, js_ident_call(c, pNode.meta, pNode.varIdent)
       c.stack(pNode, scope)
 
-  newHandler "handleFunction":
+  newHandler handleFunction:
     if unlikely(c.inScope(node.fnIdent, scope)): 
       compileError(redefineIdent, [node.fnIdent], node.meta)
     if likely(node.fnFwd == false):
@@ -68,15 +68,17 @@ elif declared jsc:
           add docBlockComment, c.genCommentFnReturn(node.fnReturnType)
           write(js_doc_comment(c, node.meta, docBlockComment))
           write(js_func_def(c, node.meta, node.fnIdent, jsParams.join(",")))
-          
+
           # write function body
           curlyBlock:
-            # var hasReturnType: bool
-            for innerNode in node.fnBody.stmtNode.list:
-              casey node.fnHasReturnType, true:
-                compileWarning(unreachableCode, [node.fnIdent], innerNode.meta)
-                add c.output, "}"
-                return
+            let total = node.fnBody.stmtNode.list.high
+            for i in 0 .. total:
+              let innerNode = node.fnBody.stmtNode.list[i]
+              if i < total:
+                casey node.fnHasReturnType, true:
+                  compileWarning(unreachableCode, [node.fnIdent], innerNode.meta)
+                  add c.output, "}"
+                  return
               case innerNode.nt
               of ntCommand:
                 # case innerNode.cmdType

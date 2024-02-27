@@ -126,6 +126,4 @@ newPrefixProc "parseFunction":
       return nil
     else: discard
     walk p
-  # parse function body
   stmtBody(result.fnBody, excludes = {tkImport, tkInclude, tkExport})
-  # result.fnFwd = true

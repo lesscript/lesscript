@@ -20,6 +20,11 @@ macro features*(x: varargs[string]): untyped =
 
 when declared jsp:
   # Utils - Lesscript Parser
+  template expectWalk(kind: TokenKind) {.dirty.} =
+    if likely(p.curr is kind):
+      walk p
+    else: return
+
   template expectWalkOrNil(kind: TokenKind) {.dirty.} =
     if likely(p.curr is kind):
       walk p

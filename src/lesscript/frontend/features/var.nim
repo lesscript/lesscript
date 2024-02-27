@@ -40,21 +40,28 @@ proc parseVarIdent(p: var Parser, tk, ident: TokenTuple,
     case p.curr.kind
     of tkColon: # set variable type
       if likely(p.next in litTokens or p.next in {tkIdentifier, tkTypeof}):
-        walk p, 2
-        if p.prev.kind == tkTypeof:
+        walk p
+        if p.curr.kind == tkTypeof:
+          walk p
+          let id = p.curr
           expectToken p.curr, tkIdentifier:
-            implType = getType(p.curr)
+            implType = id.getType
             walk p
           case implType
           of tAny, tCustom:
-            valTypeof = ast.newId(p.prev)
+            valTypeof = ast.newId(id.value)
             valTypeof.identExtractType = true
           else: discard
+          walk p
         else:
-          implType = getType(p.prev)
+          implType = getType(p.curr)
+          walk p
           case implType
           of tAny, tCustom:
-            valTypeof = ast.newId(p.prev)
+            valTypeof = ast.newId(p.curr)
+            walk p
+          of tRange:
+            varValue = p.parseRange(p.curr)
           else: discard
       else: walk p; return nil
       isTypedOrDefault = true      
@@ -113,7 +120,7 @@ proc parseDestructor(p: var Parser, xVar: TokenTuple, varType: VarType): Node =
 
 newPrefixProc "parseVar":
   # parse variable declarations, `var`, `let`, `const`
-  # todo allow declarations prefixed with `$`
+  # todo allow identifiers prefixed with `$`
   let tk = p.curr
   let varType = getVarType(p.curr)
   case p.next.kind

@@ -6,7 +6,7 @@
 #          https://github.com/lesscript
 #          https://lesscript.com
 
-newHandler "handleClass":
+newHandler handleClass:
   if likely(c.inCurrentScope(node.classIdent, scope) == false):
     var extends: string
     # if node.classExtends.len > 0:

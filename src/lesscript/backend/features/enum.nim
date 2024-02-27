@@ -9,7 +9,7 @@
 when declared nimc:
   discard
 elif declared jsc:
-  newHandler "enumDefinition":
+  newHandler enumDefinition:
     # Handle `enum` declarations
     if likely(c.inScope(node.enumIdent, scope) == false):
       let enumKeys = toSeq(node.enumFields.keys)

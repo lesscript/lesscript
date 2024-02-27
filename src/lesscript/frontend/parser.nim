@@ -32,7 +32,8 @@ const
   assgnTokens = {tkBool, tkString, tkInteger, tkFloat, tkFnCall,
       tkIdentifier, tkNew, tkFnDef, tkFuncDef, tkFunctionDef,
       tkVarCall, tkLB, tkLC}
-  litTokens   = {tkLitArray, tkLitBool, tkLitBoolean, tkLitFloat, tkLitInt, tkLitObject, tkLitString}
+  litTokens   = {tkLitArray, tkLitBool, tkLitBoolean, tkLitFloat,
+    tkLitInt, tkLitObject, tkLitString, tkLitRange}
   compTokens = {tkIdentifier, tkFunctionDef, tkFuncDef, tkFnDef,
     tkString, tkInteger, tkBool, tkFloat, tkLB, tkLC}
 
@@ -100,7 +101,7 @@ proc getPrefixOrInfix(p: var Parser, includes,
 proc getInfixFn(p: var Parser): InfixFunction {.gcsafe.}
 
 proc parse(p: var Parser, includes,
-    excludes: set[TokenKind] = {}): Node {.gcsafe.}
+    excludes: set[TokenKind] = {}, parent: Node = nil): Node {.gcsafe.}
 
 proc parseStmt(p: var Parser, parent: (TokenTuple, Node),
     includes, excludes: set[TokenKind] = {}, isCurlyStmt = false): Node {.gcsafe.}
@@ -206,7 +207,13 @@ proc parseStmt(p: var Parser, parent: (TokenTuple, Node), includes,
   while p.curr isnot tkEOF and isInsideBlock:
     var node: Node = p.parse()
     if likely(node != nil):
-      result.stmtNode.list.add(node)
+      case node.nt
+      of ntCommand:
+        if node.cmdType == cReturn and parent[1] != nil:
+          parent[1].fnHasReturnType = true
+        result.stmtNode.list.add(node)
+      else:
+        result.stmtNode.list.add(node)
     else: return nil
 
 proc parseStmtTree(p: var Parser, parent: (TokenTuple, Node), includes,
@@ -248,8 +255,9 @@ proc getType(tk: TokenTuple): Type =
     of tkLitInt32: tInt32
     of tkLitInt64: tInt64
     of tkLitBigInt: tBigInt
-    of tkLitObject: tObject
+    of tkLitObject, tkLC: tObject
     of tkLitString: tString
+    of tkLitRange: tRange
     # of tkLitUint: tUint
     # of tkLitUint8: tUint
     # of tkLitUint16: tUint16
@@ -303,16 +311,11 @@ features "literal", "var", "assign", "data", "for",
 
 proc parseAssignableNode(p: var Parser): Node =
   case p.curr.kind
-  # of tkBool:        p.parseBoolLit()
-  # of tkFloat:       p.parseFloatLit()
-  # of tkInteger:     p.parseIntLit()
   of tkLB:          p.parseAnoArray()
   of tkLC:          p.parseAnoObject()
-  # of tkString, tkSQuoteString:
-    # p.parseStrLit()
   of tkIdentifier:  p.parseCall()
-  else: p.getPrefixOrInfix(includes = {tkBool, tkFloat, tkInteger, tkString,
-                            tkSQuoteString, tkLB, tkLC, tkIdentifier, tkAssert})
+  else: p.getPrefixOrInfix(includes = {tkBool, tkFloat, tkInteger,
+          tkString, tkSQuoteString, tkLB, tkLC, tkIdentifier, tkAssert})
 
 proc parseKeyType(p: var Parser, isStatic, isReadonly = false): Node =
   # Parse pairs of `key: value` or `key: type = value`
@@ -381,6 +384,20 @@ newPrefixProc "parseImport":
     p.importPaths.add(p.curr.value)
     walk p
 
+newPrefixProc "parseBlockStmt":
+  let tk = p.curr
+  walk p
+  result = ast.newStmtList()
+  while p.curr notin {tkEOF, tkRC}:
+    var node: Node = p.parse(excludes = {tkReturn})
+    if likely(node != nil):
+      result.stmtNode.list.add(node)
+    else: return nil
+  if p.curr is tkRC:
+    walk p
+  else:
+    return nil
+
 #
 # Main Prefix Handler
 # 
@@ -394,6 +411,7 @@ proc getPrefixFn(p: var Parser, includes, excludes: set[TokenKind] = {}): Prefix
   of tkFloat:   parseFloatLit
   of tkBool:    parseBoolLit
   of tkString:  parseStrLit
+  of tkLitRange:   parseRangeLit
   of tkIf:
     parseIf
   of tkClassDef:
@@ -416,6 +434,7 @@ proc getPrefixFn(p: var Parser, includes, excludes: set[TokenKind] = {}): Prefix
   of tkNew: parseNew
   of tkDeclare: parseDeclare
   of tkImport: parseImport
+  of tkLC: parseBlockStmt
   of tkDoc:
     parseBlockComment
   else: nil
@@ -492,7 +511,8 @@ proc getPrefixOrInfix(p: var Parser, includes,
         return infixNode
   result = lhs
 
-proc parse(p: var Parser, includes, excludes: set[TokenKind] = {}): Node {.gcsafe.} =
+proc parse(p: var Parser, includes, excludes: set[TokenKind] = {},
+    parent: Node = nil): Node {.gcsafe.} =
   if excludes.len > 0:
     if unlikely p.curr in excludes:
       errorWithArgs(invalidContext, p.curr, [p.curr.value])
@@ -510,7 +530,6 @@ proc parse(p: var Parser, includes, excludes: set[TokenKind] = {}): Node {.gcsaf
 # Public API
 #
 proc parseModule*(code: string, filePath = "", isLocal = false): Parser {.gcsafe.}
-
 proc getModule*(p: Parser): Module = p.module
 
 proc parseHandle[T](imp: Import[T], importFile: ImportFile,
@@ -543,7 +562,7 @@ proc parseModule*(code: string, filePath = "", isLocal = false): Parser {.gcsafe
   
   while not imp.handle.hasErrors:
     if imp.handle.curr.kind == tkEOF: break
-    let node = imp.handle.parse()
+    let node = imp.handle.parse(excludes = {tkReturn})
     if likely(node != nil):
       add imp.handle.module.nodes, node
     else: break

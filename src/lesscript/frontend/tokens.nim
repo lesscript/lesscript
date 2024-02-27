@@ -195,6 +195,7 @@ registerTokens toktokSettings:
   litBigInt = "bigint"
   litObject = "object"
   litString = "string"
+  litRange = "range"
   litNull = "null"
   litNil = "nil"
 

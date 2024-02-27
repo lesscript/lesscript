@@ -9,7 +9,7 @@
 when declared nimc:
   discard
 elif declared jsc:
-  newHandler "handleVarAssign":
+  newHandler handleVarAssign:
     # Handle assignment declarations
     let identName =
       case node.asgnIdent.nt

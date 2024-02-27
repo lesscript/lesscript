@@ -12,7 +12,7 @@ elif declared jsc:
   #
   # Transpiler - Handles Debug commands
   #
-  newHandler "handleCommand":
+  newHandler handleCommand:
     case node.cmdType:
     of cEcho, cWarn, cInfo, cError, cAssert:
       casey c.env, dev:

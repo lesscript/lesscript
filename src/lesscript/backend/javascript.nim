@@ -111,8 +111,9 @@ proc js_doc_param      {.js: "{$1}$2 $3\n *".}
 proc js_prefix         {.js: "$1 ".}
 proc js_par_group      {.js: "($1)".}
 
-macro newHandler(name: static string, body: untyped) =
-  ident(name).newProc(
+macro newHandler(name, body: untyped) =
+  expectKind(name, nnKident)
+  newProc(name,
     [
       newEmptyNode(),
       nnkIdentDefs.newTree(ident("c"), ident("Compiler"), newEmptyNode()),
@@ -179,7 +180,7 @@ include ./scope
 proc jsType(t: Type): string =
   case t:
   of tString, tObject, tArray, tVoid, tAny: $t
-  of tInt: "number"
+  of tInt, tFloat, tFloat32, tFloat64: "number" # todo
   of tBool: "boolean"
   else: ""
 
@@ -244,7 +245,6 @@ proc typeCheck(c: Compiler, lhs, rhs: Node, scope: var seq[ScopeTable]): bool =
       let rhsType = rhs.getType
       case rhs.getType
       of tString, tInt, tFloat:
-
         if likely(lhs.valTypeof.identType == rhsType):
           return true
         compileError(fnMismatchParam, [lhs.varIdent,
@@ -499,11 +499,11 @@ proc walkAccessor(c: Compiler, lhs, rhs: Node,
       case rhs.nt
       of ntValue:
         if likely(rhs.getType == tInt):
-          if likely(high >= rhs.val.vInt):
-            acc.add("[" & $(rhs.val.vInt) & "]")
-            return lhs.arrayItems[rhs.val.vInt]
-          else:
-            compileError(indexDefect, [$(rhs.val.vInt), "0", $(high)], rhs.meta)
+          # if likely(high >= rhs.val.vInt):
+          acc.add("[" & $(rhs.val.vInt) & "]")
+          # return lhs.arrayItems[rhs.val.vInt]
+          # else:
+            # compileError(indexDefect, [$(rhs.val.vInt), "0", $(high)], rhs.meta)
         else:
           compileError(invalidAccessor, [$(rhs.getType), $(tArray)], rhs.meta)
       of ntBracketExpr:
@@ -626,16 +626,16 @@ features "literal", "var", "assign", "data", "for",
 #
 # Handles `type` definitions
 #
-newHandler "handleTypeDef":
-  if likely(not c.inScope(node.typeIdent, scope)):
+newHandler handleTypeDef:
+  if (not c.inScope(node.typeIdent, scope)):
     c.stack(node, scope)
   else: compileError(redefinitionError, [node.typeIdent], node.meta)
 
 #
 # Handle calls 
 #
-newHandler "callDefinition":
-  # Handles function/class calls
+newHandler callDefinition:
+  #  function/class calls
   var scopedNode = c.scoped(node.callIdent, scope)
   if likely(scopedNode != nil):
     case node.callType:
@@ -687,6 +687,14 @@ newHandler "callDefinition":
   else:
     compileError(undeclaredIdent, [node.callIdent], node.meta)
 
+newHandler handleBlockStmt:
+  newScope:
+    write "{"
+    for n in node.stmtNode.list:
+      c.transpile(n, scope)
+    write "}"
+  do: delScope()
+
 proc transpile(c: Compiler, node: Node, scope: var seq[ScopeTable], returnType: Option[Type] = none(Type)) {.gcsafe.} =
   let compileHandler: CompileHandler =
     case node.nt
@@ -699,6 +707,7 @@ proc transpile(c: Compiler, node: Node, scope: var seq[ScopeTable], returnType: 
     of ntTypeDef:     handleTypeDef
     of ntEnum:        enumDefinition
     of ntCall:        callDefinition
+    of ntStmt:        handleBlockStmt
     else: nil
 
   # Handles function/class calls    else: nil

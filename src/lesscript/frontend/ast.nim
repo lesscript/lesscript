@@ -77,6 +77,7 @@ type
     tObject = "object"
     tString = "string"
     tTuple = "tuple"
+    tRange = "range"
     tBool = "bool"
     tTemplate = "template"
     tGeneric
@@ -145,6 +146,7 @@ type
     of tInt32:    vInt32*: int32
     of tInt64:    vInt64*: int64
     of tBigInt:   vBint*: BigInt
+    of tRange:    vRangeValue*: tuple[min, max: TokenTuple] # tkInteger / tkFloat
     else: discard
 
   StmtType* = enum
@@ -352,18 +354,28 @@ proc getInfixCalcOp*(kind: TokenKind, isInfixInfix: bool): MathOp =
     else: invalidCalcOp
 
 proc newBool*(tk: TokenTuple): Node =
+  ## Create a new bool type
   Node(nt: ntValue, val: Value(vt: tBool, vBool: parseBool(tk.value)), meta: tk.trace)
 
 proc newFloat*(tk: TokenTuple): Node =
+  ## Create a new float type
   Node(nt: ntValue, val: Value(vt: tFloat, vFloat: parseFloat(tk.value)), meta: tk.trace)
 
 proc newInt*(tk: TokenTuple): Node =
+  ## Create a new int type
   Node(nt: ntValue, val: Value(vt: tInt, vInt: parseInt(tk.value)), meta: tk.trace)
 
+proc newRange*(tk, min, max: TokenTuple): Node =
+  ## Create a new range type
+  result = Node(nt: ntValue, val: Value(vt: tRange), meta: tk.trace)
+  result.val.vRangeValue = (min, max)
+
 proc newStr*(tk: TokenTuple): Node =
+  ## Create a new string type
   Node(nt: ntValue, val: Value(vt: tString, vStr: tk.value), meta: tk.trace)
 
 proc newComment*(tk: TokenTuple): Node =
+  ## Create a new comment block
   Node(nt: ntDocComment, commentBlock: tk.value, commentBlockParams: tk.attr, meta: tk.trace)
 
 # proc newGeneric*(x: string): Node =
