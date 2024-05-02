@@ -43,9 +43,10 @@ const
 #
 # Compile-time internal utils
 #
-macro newPrefixProc(name: static string, body: untyped) =
-  ## Create a new prefix proc with `name` and `body`
-  ident(name).newProc(
+macro newPrefix(handleName, handleBody: untyped) =
+  ## Create a new prefix proc with `handleName` and `handleBody`
+  newProc(
+    handleName,
     [
       ident("Node"), # return type
       nnkIdentDefs.newTree(
@@ -65,7 +66,7 @@ macro newPrefixProc(name: static string, body: untyped) =
         newNilLit()
       ),
     ],
-    body = body,
+    body = handleBody,
     pragmas = nnkPragma.newTree(
       ident("gcsafe")
     )
@@ -190,10 +191,11 @@ template isInsideBlock: untyped =
     (p.curr isnot tkRC)
 
 template stmtBody(body: untyped, includes, excludes: set[TokenKind] = {}) {.dirty.} =
-  var isCurlyStmt =
+  let isCurlyStmt =
     if p.curr is tkLC:
       walk p; true
-    else: false
+    else:
+      expectWalkOrNil(tkColon); false
   body = p.parseStmt((tk, result), includes, excludes, isCurlyStmt)
   if likely(isCurlyStmt):
     casey p.curr, tkRC:
@@ -297,7 +299,7 @@ proc getVarType(tk: TokenTuple): VarType =
   of tkLet: vtLet
   else: vtConst
 
-newPrefixProc "parseNew":
+newPrefix parseNew:
   if likely(p.next.isIdent):
     walk p, 2
     result = ast.newCall(p.prev)
@@ -344,7 +346,7 @@ proc parseKeyType(p: var Parser, isStatic, isReadonly = false): Node =
         prop.pIdent = pTypeIdent.value
       result = prop
 
-newPrefixProc "parseDotExpr":
+newPrefix parseDotExpr:
   # parse a new `x.y` dot expression
   # todo newInfixProc
   let tk = p.curr
@@ -367,7 +369,7 @@ newPrefixProc "parseDotExpr":
     likelyNodeReturn:
       ast.newAssignment(result, node, tk)
 
-newPrefixProc "parseDeclare":
+newPrefix parseDeclare:
   # parse a new `declare` definition
   let tk = p.curr; walk p
   let node = p.parse(includes = {tkFnDef, tkFuncDef,
@@ -376,7 +378,7 @@ newPrefixProc "parseDeclare":
     ast.newDeclareStmt(tk, node)
 
 
-newPrefixProc "parseImport":
+newPrefix parseImport:
   let tk = p.curr
   if p.next in {tkSQuoteString, tkString}:
     walk p
@@ -384,7 +386,7 @@ newPrefixProc "parseImport":
     p.importPaths.add(p.curr.value)
     walk p
 
-newPrefixProc "parseBlockStmt":
+newPrefix parseBlockStmt:
   let tk = p.curr
   walk p
   result = ast.newStmtList()
@@ -435,6 +437,8 @@ proc getPrefixFn(p: var Parser, includes, excludes: set[TokenKind] = {}): Prefix
   of tkDeclare: parseDeclare
   of tkImport: parseImport
   of tkLC: parseBlockStmt
+  of tkWhile: parseWhileBlockStmt
+  of tkDo: parseDoWhileStmt
   of tkDoc:
     parseBlockComment
   else: nil

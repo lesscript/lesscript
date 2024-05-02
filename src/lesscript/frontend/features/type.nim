@@ -6,7 +6,7 @@
 #          https://github.com/lesscript
 #          https://lesscript.com
 
-newPrefixProc "parseTypeDef":
+newPrefix parseTypeDef:
   # parse a `type` definition
   let tk = p.curr
   walk p # tkTypeDef

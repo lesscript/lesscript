@@ -6,4 +6,30 @@
 #          https://github.com/lesscript
 #          https://lesscript.com
 
-# todo
+
+when declared nimc:
+  discard
+elif declared jsc:
+  template whileStmtNode(expr, body: Node) =
+    write js_while(c, node.meta, c.getInfix(expr, scope))
+    newScope:
+      curlyBlock:
+        for innerNode in body.stmtNode.list:
+          c.transpile(innerNode, scope, returnType)
+    do: delScope()
+
+  newHandler handleWhileStmt:
+    # Handle `while` statements
+    whileStmtNode(node.whileExpr, node.whileBody)
+
+  newHandler handleDoWhileStmt:
+    # handle `do {} while(expr) {} statements
+    write js_do(c, node.meta)
+    block:
+      newScope:
+        curlyBlock:
+          for innerNode in node.doWhileBlock.stmtNode.list:
+            c.transpile(innerNode, scope, returnType)
+      do: delScope()
+    block:
+      whileStmtNode(node.doWhileStmt.whileExpr, node.doWhileStmt.whileBody)

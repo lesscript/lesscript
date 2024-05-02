@@ -47,6 +47,8 @@ type
     ntInfix = "InfixExpression"
     ntIf = "IfExpression"
     ntFor = "ForExpression"
+    ntWhile = "WhileStatement"
+    ntDoWhile = "DoWhileStatement"
     arrayDecl
     objectDecl
     ntUnpack
@@ -222,6 +224,10 @@ type
     of ntFor:
       forItem*, forItems*: Node
       forBody*: Node # ntStmt
+    of ntWhile:
+      whileExpr*, whileBody*: Node
+    of ntDoWhile:
+      doWhileBlock*, doWhileStmt*: Node
     of ntUnpack:
       unpackFrom*: Node
       unpackTo*: seq[Node]
@@ -293,6 +299,11 @@ proc `$`*(node: Node): string =
     else:
       toJson(node)
 
+when not defined release:
+  proc debugEcho*(node: Node|seq[Node]) =
+    {.gcsafe.}:
+      echo pretty(toJson(node), 2)
+
 proc `$`*(nodes: seq[Node]): string =
   {.gcsafe.}:
     when not defined release:
@@ -352,6 +363,9 @@ proc getInfixCalcOp*(kind: TokenKind, isInfixInfix: bool): MathOp =
     of tkDiv: mDiv
     of tkMod: mMod
     else: invalidCalcOp
+
+proc newNode*(nodeType: static NodeType, tk: TokenTuple): Node =
+  result = Node(nt: nodeType, meta: tk.trace)
 
 proc newBool*(tk: TokenTuple): Node =
   ## Create a new bool type

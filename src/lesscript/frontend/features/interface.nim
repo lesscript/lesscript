@@ -6,7 +6,7 @@
 #          https://github.com/lesscript
 #          https://lesscript.com
 
-newPrefixProc "parseInterface":
+newPrefix parseInterface:
   ## Parse `interface` definition
   let tk = p.curr
   let ident = p.next

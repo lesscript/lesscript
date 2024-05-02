@@ -118,7 +118,7 @@ proc parseDestructor(p: var Parser, xVar: TokenTuple, varType: VarType): Node =
     else:
       errorWithArgs(invalidIterator, p.curr, [$(p.curr.getTypeByToken())])
 
-newPrefixProc "parseVar":
+newPrefix parseVar:
   # parse variable declarations, `var`, `let`, `const`
   # todo allow identifiers prefixed with `$`
   let tk = p.curr

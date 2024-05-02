@@ -6,7 +6,7 @@
 #          https://github.com/lesscript
 #          https://lesscript.com
 
-newPrefixProc "parseFor":
+newPrefix parseFor:
   let tk = p.curr
   walk p
   expectWalkOrNil tkLP
@@ -27,3 +27,26 @@ newPrefixProc "parseFor":
       result = ast.newFor(itemNode, itemsNode, tk)
       stmtBody(result.forBody)
   else: discard
+
+newPrefix parseWhileBlockStmt:
+  # parse a `while() {}` statement
+  let tk = p.curr
+  result = ast.newNode(ntWhile, p.curr)
+  walk p
+  expectWalk tkLP
+  result.whileExpr = p.getPrefixOrInfix()
+  expectNotNil result.whileExpr:
+    expectWalk tkRP
+    stmtBody(result.whileBody)
+
+newPrefix parseDoWhileStmt:
+  # parse a `do {} while(expr){}` statement
+  let tk = p.curr
+  result = ast.newNode(ntDoWhile, p.curr)
+  walk p
+  stmtBody(result.doWhileBlock)
+  expectNotNil result.doWhileBlock:
+    expectToken p.curr, tkWhile:
+      result.doWhileStmt =p.parseWhileBlockStmt()
+      expectNotNil result.doWhileStmt:
+        discard

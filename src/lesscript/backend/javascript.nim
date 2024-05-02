@@ -103,6 +103,8 @@ proc js_if_def         {.js: "if($1)".}
 proc js_elif_def       {.js: "else if($1)".}
 proc js_else_def       {.js: "else".}
 proc js_infix          {.js: "$1".}
+proc js_while          {.js: "while($1)".}
+proc js_do             {.js: "do".}
 proc js_kv_def         {.js: "$1:$2".}
 proc js_arr_def        {.js: "[$1]".}
 proc js_dot_def        {.js: "$1.$2".}
@@ -708,6 +710,8 @@ proc transpile(c: Compiler, node: Node, scope: var seq[ScopeTable], returnType: 
     of ntEnum:        enumDefinition
     of ntCall:        callDefinition
     of ntStmt:        handleBlockStmt
+    of ntWhile:       handleWhileStmt
+    of ntDoWhile:     handleDoWhileStmt
     else: nil
 
   # Handles function/class calls    else: nil

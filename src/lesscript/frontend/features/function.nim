@@ -6,7 +6,7 @@
 #          https://github.com/lesscript
 #          https://lesscript.com
 
-newPrefixProc "parseFunction":
+newPrefix parseFunction:
   let tk = p.curr
   var ident: TokenTuple
   if tk.isIdent:

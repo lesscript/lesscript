@@ -6,7 +6,7 @@
 #          https://github.com/lesscript
 #          https://lesscript.com
 
-newPrefixProc "parseAnoObject":
+newPrefix parseAnoObject:
   # parse an anonymous object
   let anno = ast.newObject(p.curr)
   walk p # {
@@ -35,7 +35,7 @@ newPrefixProc "parseAnoObject":
     walk p
   return anno
 
-newPrefixProc "parseAnoArray":
+newPrefix parseAnoArray:
   # parse an anonymous array
   let tk = p.curr
   walk p # [

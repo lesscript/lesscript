@@ -6,7 +6,7 @@
 #          https://github.com/lesscript
 #          https://lesscript.com
 
-newPrefixProc "parseConsole":
+newPrefix parseConsole:
   # parse a `echo`, `warn`, `info`,
   # `error`, and `assert` commands
   let tk = p.curr
@@ -22,7 +22,7 @@ newPrefixProc "parseConsole":
   expectNotNil node:
     return ast.newCommand(cmdType, node, tk)
 
-newPrefixProc "parseReturn":
+newPrefix parseReturn:
   # parse a new `return` command
   let tk = p.curr
   walk p
@@ -30,7 +30,7 @@ newPrefixProc "parseReturn":
   expectNotNil node:
     return ast.newCommand(cReturn, node, tk)
 
-newPrefixProc "parseCall":
+newPrefix parseCall:
   # parse a new call command
   var ident = p.curr
   result = ast.newCall(ident)

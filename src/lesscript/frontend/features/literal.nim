@@ -6,7 +6,7 @@
 #          https://github.com/lesscript
 #          https://lesscript.com
 
-newPrefixProc "parseBoolLit":
+newPrefix parseBoolLit:
   # parse bool
   result = ast.newBool(p.curr)
   walk p
@@ -24,17 +24,17 @@ proc parseRange(p: var Parser, this: TokenTuple): Node =
       walk p
   expectWalkOrNil tkRB
 
-newPrefixProc "parseRangeLit":
+newPrefix parseRangeLit:
   # parse a range type
   let this = p.curr
   return p.parseRange(this)
 
-newPrefixProc "parseFloatLit":
+newPrefix parseFloatLit:
   # parse float
   result = ast.newFloat(p.curr)
   walk p
 
-newPrefixProc "parseIntLit":
+newPrefix parseIntLit:
   # parse int
   # if p.next == tkDot and p.next.line == p.curr.line:
   #   # kinda dirty
@@ -45,11 +45,11 @@ newPrefixProc "parseIntLit":
   result = ast.newInt(p.curr)
   walk p
 
-newPrefixProc "parseStrLit":
+newPrefix parseStrLit:
   # parse a string
   result = ast.newStr(p.curr)
   walk p
 
-newPrefixProc "parseThis":
+newPrefix parseThis:
   result = ast.newCall(p.curr)
   walk p

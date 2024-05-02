@@ -6,7 +6,7 @@
 #          https://github.com/lesscript
 #          https://lesscript.com
 
-newPrefixProc "parseAssign":
+newPrefix parseAssign:
   # parse a new assignment
   # todo newInfixProc
   let tk = p.curr

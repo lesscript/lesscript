@@ -6,7 +6,7 @@
 #          https://github.com/lesscript
 #          https://lesscript.com
 
-newPrefixProc "parseBlockComment":
+newPrefix parseBlockComment:
   # Parse comments
   var commentNode = ast.newComment(p.curr)
   walk p

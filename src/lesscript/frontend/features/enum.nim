@@ -6,7 +6,7 @@
 #          https://github.com/lesscript
 #          https://lesscript.com
 
-newPrefixProc "parseEnum":
+newPrefix parseEnum:
   # Parse `enum` declarations
   let tk = p.curr
   if likely(p.next.isIdent):

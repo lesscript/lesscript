@@ -23,7 +23,7 @@ when declared jsp:
   template expectWalk(kind: TokenKind) {.dirty.} =
     if likely(p.curr is kind):
       walk p
-    else: return
+    else: return 
 
   template expectWalkOrNil(kind: TokenKind) {.dirty.} =
     if likely(p.curr is kind):

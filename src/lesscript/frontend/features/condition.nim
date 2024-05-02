@@ -6,7 +6,7 @@
 #          https://github.com/lesscript
 #          https://lesscript.com
 
-newPrefixProc "parseIf":
+newPrefix parseIf:
   # parse a new `if` statement
   let tk = p.curr
   const condBodyExcludes = {tkImport, tkInclude, tkExport}
