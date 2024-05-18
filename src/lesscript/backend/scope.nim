@@ -37,7 +37,8 @@ proc stack(c: Compiler, node: Node, scopetables: var seq[ScopeTable]) =
   else:
     toScope(c.globalScope, node)
 
-proc getScope(c: Compiler, name: string, scopetables: var seq[ScopeTable]): tuple[st: ScopeTable, index: int] =
+proc getScope(c: Compiler, name: string,
+    scopetables: var seq[ScopeTable]): tuple[scopeTable: ScopeTable, index: int] =
   ## Search through available seq[ScopeTable] for `name`,
   if scopetables.len > 0:
     for i in countdown(scopetables.high, scopetables.low):
@@ -54,7 +55,7 @@ proc getScope(c: Compiler, scopetables: var seq[ScopeTable]): ScopeTable =
 
 proc inScope(c: Compiler, id: string, scopetables: var seq[ScopeTable]): bool =
   ## Perform a `getScope` call, if `nil` then returns false
-  result = c.getScope(id, scopetables).st != nil
+  result = c.getScope(id, scopetables).scopeTable != nil
 
 proc inScope(id: string, scopetables: var seq[ScopeTable]): bool =
   ## Performs a quick search in the current `ScopeTable`
@@ -70,8 +71,8 @@ proc inCurrentScope*(c: Compiler, id: string, scopetables: var seq[ScopeTable]):
 proc scoped(c: Compiler, id: string, scope: var seq[ScopeTable]): Node =
   ## Returns a callable node from `scope` table. Returns `nil` when not found
   let currentScope = c.getScope(id, scope)
-  if currentScope.st != nil:
-    result = currentScope.st[id]
+  if currentScope.scopeTable != nil:
+    result = currentScope.scopeTable[id]
 
 proc scoped(c: Compiler, name: string, scopetables: var seq[ScopeTable], index: int): (Node, int) =
   ## Returns a callable node from a `scope` table at given `index`

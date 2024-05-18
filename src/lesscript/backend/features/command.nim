@@ -18,33 +18,37 @@ elif declared jsc:
       casey c.env, dev:
         case node.cmd.nt:
         of ntCall:
-          var scopedNode = c.scoped(node.cmd.callIdent, scope)
-          expectNotNil scopedNode:
-            case scopedNode.nt
-            of ntFuncDef:
-              write js_console_log(c, node.meta,
-                $node.cmdType, node.cmd.callIdent & "()") # todo
-            of ntVarDecl:
-              case scopedNode.valType:
-              of tFunction:
-                write js_console_log(c, node.meta,
-                  $node.cmdType, node.cmd.callIdent & "()")
-              else:
-                write js_console_log(c, node.meta,
-                  $node.cmdType, node.cmd.callIdent)
-            of ntEnum:
-              write js_console_log(c, node.meta,
-                $node.cmdType, node.cmd.callIdent)
-            else: discard
-          do:
-            case node.cmd.callType
-            of identCall:
-              compileError(undeclaredVar,
-                [node.cmd.callIdent], node.cmd.meta)
-            of fnCall:
-              compileError(undeclaredIdent,
-                [node.cmd.callIdent], node.cmd.meta)
-            else: discard
+          write js_console_log(c, node.meta, $node.cmdType)
+          write js_par_start(c, node.meta)
+          c.transpile(node.cmd, scope)
+          write js_par_end(c, node.meta)
+          # var scopedNode = c.scoped(node.cmd.callIdent, scope)
+          # expectNotNil scopedNode:
+          #   case scopedNode.nt
+          #   of ntFuncDef:
+          #     write js_console_log(c, node.meta,
+          #       $node.cmdType, node.cmd.callIdent & "()")
+          #   of ntVarDecl:
+          #     case scopedNode.valType:
+          #     of tFunction:
+          #       write js_console_log(c, node.meta,
+          #         $node.cmdType, node.cmd.callIdent & "()")
+          #     else:
+          #       write js_console_log(c, node.meta,
+          #         $node.cmdType, node.cmd.callIdent)
+          #   of ntEnum:
+          #     write js_console_log(c, node.meta,
+          #       $node.cmdType, node.cmd.callIdent)
+          #   else: discard
+          # do:
+          #   case node.cmd.callType
+          #   of identCall:
+          #     compileError(undeclaredIdent,
+          #       [node.cmd.callIdent], node.cmd.meta)
+          #   of fnCall:
+          #     compileError(undeclaredIdent,
+          #       [node.cmd.callIdent], node.cmd.meta)
+          #   else: discard
         of ntValue:
           write js_console_log(c, node.meta, $node.cmdType,
             c.toString(node.cmd, scope))

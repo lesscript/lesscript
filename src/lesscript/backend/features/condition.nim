@@ -16,8 +16,8 @@ elif declared jsc:
     if unlikely(node.ifBranch.body.stmtNode.list.len == 0):
       compileWarning(emptyBlockStatement, ["if"], node.meta)
     write js_if_def(c, node.meta, c.getInfix(node.ifBranch.cond, scope))
-    newScope:
-      curlyBlock:
+    newScope do:
+      curlyBlock do:
         for innerNode in node.ifBranch.body.stmtNode.list:
           c.transpile(innerNode, scope, returnType)
     do: delScope()
@@ -26,8 +26,8 @@ elif declared jsc:
       if unlikely(elifBranch.body.stmtNode.list.len == 0):
         compileWarning(emptyBlockStatement, ["elif"], elifBranch.body.meta)
       write js_elif_def(c, node.meta, c.getInfix(elifBranch.cond, scope))
-      newScope:
-        curlyBlock:
+      newScope do:
+        curlyBlock do:
           for innerNode in elifBranch.body.stmtNode.list:
             c.transpile(innerNode, scope, returnType)
       do: delScope()
@@ -36,8 +36,8 @@ elif declared jsc:
       if unlikely(node.elseBranch.stmtNode.list.len == 0):
         compileWarning(emptyBlockStatement, ["else"], node.elseBranch.meta)
       write js_else_def(c, node.meta)
-      newScope:
-        curlyBlock:
+      newScope do:
+        curlyBlock do:
           for innerNode in node.elseBranch.stmtNode.list:
             c.transpile(innerNode, scope, returnType)
       do: delScope()

@@ -85,7 +85,7 @@ macro js(x, y: untyped) =
 
 # JS Emitters
 proc js_strict         {.js: "\"use strict\";\n", .}
-proc js_console_log    {.js: "console.$1($2);".}
+proc js_console_log    {.js: "console.$1".}
 proc js_var_definition {.js: "$1 $2;".}
 proc js_var_assignment {.js: "$1 $2=$3;".}
 proc js_var_assign     {.js: "$1 $2=".}
@@ -112,6 +112,8 @@ proc js_doc_comment    {.js: "\n/**\n *$1/\n".}
 proc js_doc_param      {.js: "{$1}$2 $3\n *".}
 proc js_prefix         {.js: "$1 ".}
 proc js_par_group      {.js: "($1)".}
+proc js_par_start      {.js: "(".}
+proc js_par_end        {.js: ");".}
 
 macro newHandler(name, body: untyped) =
   expectKind(name, nnKident)
@@ -224,7 +226,45 @@ proc typeCheck(c: Compiler, expected: Type, node: Node,
       else: discard
   else: discard
 
-proc typeCheck(c: Compiler, lhs, rhs: Node, scope: var seq[ScopeTable]): bool =
+proc typeCheck(c: Compiler, nodeA, nodeB: Node, scope: var seq[ScopeTable]): bool =
+  case nodeA.valType
+  of tBool, tInt, tFloat, tString:
+    let a = nodeA.getType
+    var b: Type
+    case nodeB.nt
+    of ntCall:
+      let some = c.getScope(nodeB.callIdent, scope)
+      if likely(some.scopeTable != nil):
+        b = some.scopeTable[nodeB.callIdent].getType
+      else:
+        compileError(undeclaredIdent, [nodeB.callIdent], nodeB.meta)
+    else:
+      b = nodeB.getType
+    if likely(a == b): return true
+    compileError(fnMismatchParam, [nodeA.varIdent, $(a), $(b)], nodeB.meta)
+  else: discard
+
+proc typeExpect(c: Compiler, node: Node, expectType: Type, scope: var seq[ScopeTable]): bool =
+  var got: Type
+  case node.nt
+  of ntVarDecl:
+    case node.valType
+    of tBool, tInt, tFloat, tString:
+      got = node.getType
+    else: discard # todo
+  of ntValue:
+    got = node.val.vt
+  of ntInfix:
+    got = tbool
+  of ntInfixMath:
+    got = tInt # todo determine the restult from math infix
+  else: discard # todo
+  if unlikely(expectType != got):
+    compileError(typeMismatch, [$got, $expectType], node.meta)
+  result = true
+
+proc typeCheck2(c: Compiler, lhs, rhs: Node,
+    scope: var seq[ScopeTable]): bool =
   case lhs.valType
   of tNone:
     # set as `tNone` when the assigned value is an
@@ -636,7 +676,45 @@ newHandler handleTypeDef:
 #
 # Handle calls 
 #
+
 newHandler callDefinition:
+  let some = c.getScope(node.callIdent, scope)
+  if unlikely(some.scopeTable == nil):
+    compileError(undeclaredIdent, [node.callIdent], node.meta)
+  let
+    fnNode = some.scopeTable[node.callIdent]
+    fnParams = fnNode.fnParams.keys.toSeq
+  var asgnValArgs: seq[Node]
+  var args: seq[string]
+  if node.callArgs.len == fnNode.fnParams.len:
+    var skippable: seq[string]
+    for i in 0..node.callArgs.high:
+      let arg = node.callArgs[i]
+      if arg.argName.len > 0:
+        # checking for named arguments
+        if fnNode.fnParams.hasKey(arg.argName):
+          let param = fnNode.fnParams[arg.argName]
+          if likely(c.typeCheck(param, arg.argValue, scope)):
+            add skippable, arg.argName
+            if arg.argValue != nil:
+              add args, c.toString(arg.argValue, scope)
+            else:
+              add args, arg.argName
+        else:
+          compileError(fnUnknownParam,
+            [arg.argName], arg.argValue.meta)
+      else:
+        let param = fnNode.fnParams[fnParams[i]]
+        debugEcho arg.argValue
+        if likely(c.typeCheck(param, arg.argValue, scope)):
+          if arg.argValue != nil:
+            add args, c.toString(arg.argValue, scope)
+          else:
+            add args, arg.argName
+  # transpile to JavaScript
+  write js_func_call(c, node.meta, node.callIdent, args.join(","))
+
+newHandler callDefinition2:
   #  function/class calls
   var scopedNode = c.scoped(node.callIdent, scope)
   if likely(scopedNode != nil):
@@ -697,7 +775,8 @@ newHandler handleBlockStmt:
     write "}"
   do: delScope()
 
-proc transpile(c: Compiler, node: Node, scope: var seq[ScopeTable], returnType: Option[Type] = none(Type)) {.gcsafe.} =
+proc transpile(c: Compiler, node: Node,
+    scope: var seq[ScopeTable], returnType: Option[Type] = none(Type)) {.gcsafe.} =
   let compileHandler: CompileHandler =
     case node.nt
     of ntVarDecl:     handleVarDecl
@@ -729,7 +808,8 @@ proc hasWarnings*(c: Compiler): bool =
 
 proc getOutput*(c: Compiler): string = c.output
 
-proc compiles(m: MasterHandle, fpath: string, module: Module, outputPath, basedir: string) {.gcsafe.} =
+proc transpileModule(m: MasterHandle, fpath: string,
+    module: Module, outputPath, basedir: string) {.gcsafe.} =
   var fpath = basedir / fpath
   var c = Compiler(module: module, logger: Logger(filepath: fpath),
             path: fpath, globalScope: ScopeTable())
@@ -755,7 +835,6 @@ proc newCompiler*(p: Module, minify, obfuscate = false,
   if env == prod:
     setLen(c.strNL, 0)
   var localScope = newSeq[ScopeTable]()
-  # plugin.activate(c.globalScope)
   # write c.js_strict((0, 0))
   if c.module.imports.len > 0:
     var m = createMaster()
@@ -763,7 +842,7 @@ proc newCompiler*(p: Module, minify, obfuscate = false,
     m.awaitAll:
       for fpath, programNode in c.module.imports:
         let outputPath = fpath.parentDir / "_" & fpath.extractFilename.changefileExt("js")
-        m.spawn compiles(m.getHandle, fpath, programNode, outputPath, basedir)
+        m.spawn transpileModule(m.getHandle, fpath, programNode, outputPath, basedir)
   for i in 0..c.module.nodes.high:
     c.transpile(c.module.nodes[i], localScope)
   result = c

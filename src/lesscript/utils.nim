@@ -45,6 +45,12 @@ when declared jsp:
       body
     else: return nil
 
+  template optWalk(expectKind: TokenKind) {.dirty.} =
+    if p.curr is expectKind: walk p
+
+  template optWalk(someToken: TokenTuple, expectKind: TokenKind) =
+    if someToken is expectKind: walk p
+
 when declared jsc:
   # Utils - JavaScript Transpiler
   template expectNode(x: untyped, name: string, meta: Meta, body: untyped): untyped =
@@ -82,6 +88,11 @@ template expectNotNil(x, body): untyped =
   if likely(x != nil):
     body
   else: return nil
+
+template notnil(x, body): untyped =
+  if likely(x != nil):
+    body
+  else: return
 
 template expectNotNil(x, body, y): untyped =
   if likely(x != nil):

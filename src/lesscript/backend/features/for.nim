@@ -11,12 +11,13 @@ when declared nimc:
   discard
 elif declared jsc:
   template whileStmtNode(expr, body: Node) =
-    write js_while(c, node.meta, c.getInfix(expr, scope))
-    newScope:
-      curlyBlock:
-        for innerNode in body.stmtNode.list:
-          c.transpile(innerNode, scope, returnType)
-    do: delScope()
+    if c.typeExpect(expr, tBool, scope):
+      write js_while(c, node.meta, c.getInfix(expr, scope))
+      newScope:
+        curlyBlock:
+          for innerNode in body.stmtNode.list:
+            c.transpile(innerNode, scope, returnType)
+      do: delScope()
 
   newHandler handleWhileStmt:
     # Handle `while` statements
