@@ -29,14 +29,19 @@ type
 const
   mathTokens = {tkPlus, tkMinus, tkMulti, tkDiv}
   infixTokens = {tkEQ, tkNE, tkGT, tkGTE, tkLT, tkLTE}
-  assgnTokens = {tkBool, tkString, tkInteger, tkFloat, tkFnCall,
-      tkIdentifier, tkNew, tkFnDef, tkFuncDef, tkFunctionDef,
-      tkVarCall, tkLB, tkLC}
-  litTokens   = {tkLitArray, tkLitBool, tkLitBoolean, tkLitFloat,
-    tkLitInt, tkLitObject, tkLitString, tkLitRange}
-  compTokens = {tkIdentifier, tkFunctionDef, tkFuncDef, tkFnDef,
-    tkString, tkInteger, tkBool, tkFloat, tkLB, tkLC}
-
+  litTokens =
+    {tkLitArray, tkLitBool, tkLitBoolean, tkLitObject,
+      tkLitInt, tkLitInt8, tkLitInt16, tkLitInt32,  tkLitInt64,
+      tkLitFloat, tkLitFloat8, tkLitFloat16, tkLitFloat32, tkLitFloat64,
+      tkLitBigInt, tkLitNumber, tkLitString, tkLitRange}
+  assgnTokens =
+    litTokens + {tkFnCall, tkIdentifier, tkNew,
+      tkFnDef, tkFuncDef, tkFunctionDef, tkVarCall,
+      tkLB, tkLC}
+  compTokens =
+    {tkIdentifier, tkFunctionDef,
+      tkFuncDef, tkFnDef, tkString, tkInteger,
+      tkBool, tkFloat, tkLB, tkLC}
   jsp = true
 
 
@@ -119,8 +124,6 @@ proc parseAnoArray(p: var Parser, includes,
 proc parseAnoObject(p: var Parser, includes,
     excludes: set[TokenKind] = {}, parent: Node = nil): Node {.gcsafe.}
 
-proc parseKeyType(p: var Parser, isStatic, isReadonly = false): Node {.gcsafe.}
-
 proc parseAssignableNode(p: var Parser): Node {.gcsafe.}
 
 #
@@ -190,7 +193,8 @@ template isInsideBlock: untyped =
   else:
     (p.curr isnot tkRC)
 
-template stmtBody(body: untyped, includes, excludes: set[TokenKind] = {}) {.dirty.} =
+template stmtBody(body: untyped, includes,
+    excludes: set[TokenKind] = {}) {.dirty.} =
   let isCurlyStmt =
     if p.curr is tkLC:
       walk p; true
@@ -207,40 +211,44 @@ proc parseStmt(p: var Parser, parent: (TokenTuple, Node), includes,
   ## Creates a new `ntStmtList` node
   result = ast.newStmtList()
   while p.curr isnot tkEOF and isInsideBlock:
-    var node: Node = p.parse()
-    if likely(node != nil):
-      case node.nt
+    let childNode: Node = p.parse()
+    if likely(childNode != nil):
+      case childNode.nt
       of ntCommand:
-        if node.cmdType == cReturn and parent[1] != nil:
+        if childNode.cmdType == cReturn and parent[1] != nil:
           parent[1].fnHasReturnType = true
-        result.stmtNode.list.add(node)
+        result.stmtNode.list.add(childNode)
+        optWalk(tkSemiColon)
       else:
-        result.stmtNode.list.add(node)
+        result.stmtNode.list.add(childNode)
+        optWalk(tkSemiColon)
     else: return nil
 
-proc parseStmtTree(p: var Parser, parent: (TokenTuple, Node), includes,
-    excludes: set[TokenKind] = {}, isCurlyStmt = false): Node =
-  ## Creates a new `ntStmtTree` node
-  result = ast.newStmtTree()
-  while p.curr isnot tkEOF and isInsideBlock:
-    let tk = p.curr
-    var node: Node = p.parseKeyType()
-    if likely(node != nil):
-      if likely(result.stmtNode.tree.hasKey(node.pKey) == false):
-        result.stmtNode.tree[node.pKey] = node
-      else: errorWithArgs(duplicateField, tk, [tk.value])
-    else: return nil
+# proc parseStmtTree(p: var Parser, parent: (TokenTuple, Node), includes,
+#     excludes: set[TokenKind] = {}, isCurlyStmt = false): Node =
+#   ## Creates a new `ntStmtTree` node
+#   result = ast.newStmtTree()
+#   while p.curr isnot tkEOF and isInsideBlock:
+#     let tk = p.curr
+#     var node: Node = p.parseKeyType()
+#     if likely(node != nil):
+#       if likely(result.stmtNode.tree.hasKey(node.pKey) == false):
+#         result.stmtNode.tree[node.pKey] = node
+#       else: errorWithArgs(duplicateField, tk, [tk.value])
+#     else: return nil
 
-template stmtTree(body: untyped, includes, excludes: set[TokenKind] = {}) {.dirty.} =
-  var isCurlyStmt =
-    if p.curr is tkLC:
-      walk p; true
-    else: false
-  body = p.parseStmtTree((tk, result), includes, excludes, isCurlyStmt)
-  if likely(isCurlyStmt):
-    casey p.curr, tkRC:
-      walk p
-    do: error(missingRC, tk)
+# template stmtTree(body: untyped, includes,
+#     excludes: set[TokenKind] = {}) {.dirty.} =
+#   var isCurlyStmt =
+#     if p.curr is tkLC:
+#       walk p; true
+#     else:
+#       expectWalkOrNil(tkColon); false
+#   body = p.parseStmtTree((tk, result), includes, excludes, isCurlyStmt)
+#   if likely(isCurlyStmt):
+#     casey p.curr, tkRC:
+#       walk p
+#     do: error(missingRC, tk)
 
 proc getType(tk: TokenTuple): Type =
   case tk.kind
@@ -260,6 +268,7 @@ proc getType(tk: TokenTuple): Type =
     of tkLitObject, tkLC: tObject
     of tkLitString: tString
     of tkLitRange: tRange
+    of tkLitNumber: tNumber
     # of tkLitUint: tUint
     # of tkLitUint8: tUint
     # of tkLitUint16: tUint16
@@ -309,7 +318,7 @@ newPrefix parseNew:
 
 features "literal", "var", "assign", "data", "for",
           "type", "enum", "interface", "function", "class",
-          "command", "condition", "comment"
+          "command", "condition"
 
 proc parseAssignableNode(p: var Parser): Node =
   case p.curr.kind
@@ -319,32 +328,6 @@ proc parseAssignableNode(p: var Parser): Node =
   else: p.getPrefixOrInfix(includes = {tkBool, tkFloat, tkInteger,
           tkString, tkSQuoteString, tkLB, tkLC, tkIdentifier, tkAssert})
 
-proc parseKeyType(p: var Parser, isStatic, isReadonly = false): Node =
-  # Parse pairs of `key: value` or `key: type = value`
-  if likely((p.curr in {tkIdentifier, tkString} or p.curr.value.validIdentifier) and p.next in {tkColon, tkQMark}):
-    var prop = ast.newProperty(p.curr.value)    
-    walk p
-    prop.pReadonly = isReadonly
-    prop.pStatic = isStatic
-    if p.curr is tkQMark:
-      prop.pOptional = true
-      walk p # tkQMark
-      if p.curr is tkColon: walk p
-      else: return nil
-    else:
-      walk p
-    if likely(p.curr in litTokens or p.curr is tkIdentifier):
-      let pTypeIdent = p.curr
-      prop.pType = p.curr.getType
-      walk p
-      if p.curr is tkAssign:
-        if p.next in assgnTokens:
-          walk p
-          prop.pVal = p.parseAssignableNode()
-        else: return nil # non assignnable node
-      if prop.pType == tCustom:
-        prop.pIdent = pTypeIdent.value
-      result = prop
 
 newPrefix parseDotExpr:
   # parse a new `x.y` dot expression
@@ -401,6 +384,16 @@ newPrefix parseBlockStmt:
     return nil
 
 #
+# Parse block comments
+#
+newPrefix parseBlockComment:
+  var commentNode = ast.newComment(p.curr)
+  walk p
+  if p.curr in {tkFnDef, tkFuncDef, tkFunctionDef}:
+    return p.parseFunction(parent = commentNode)
+  result = commentNode
+
+#
 # Main Prefix Handler
 # 
 proc getPrefixFn(p: var Parser, includes, excludes: set[TokenKind] = {}): PrefixFunction =
@@ -426,6 +419,8 @@ proc getPrefixFn(p: var Parser, includes, excludes: set[TokenKind] = {}): Prefix
     case p.next.kind
     of tkAssign: parseAssign
     of tkDot:    parseDotExpr
+    of tkColon:  parseKeyType
+    of tkLP:     parseFunctionDecl
     else:        parseCall
   of tkFor: parseFor
   of tkEcho, tkWarn, tkError, tkInfo, tkAssert:

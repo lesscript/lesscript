@@ -47,6 +47,6 @@ newPrefix parseDoWhileStmt:
   stmtBody(result.doWhileBlock)
   expectNotNil result.doWhileBlock:
     expectToken p.curr, tkWhile:
-      result.doWhileStmt =p.parseWhileBlockStmt()
+      result.doWhileStmt = p.parseWhileBlockStmt()
       expectNotNil result.doWhileStmt:
         discard

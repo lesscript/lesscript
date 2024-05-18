@@ -6,7 +6,7 @@
 #          https://github.com/lesscript
 #          https://lesscript.com
 
-newPrefix parseFunction:
+newPrefix parseFunctionDecl:
   let tk = p.curr
   var ident: TokenTuple
   if tk.isIdent:
@@ -82,8 +82,9 @@ newPrefix parseFunction:
       if likely(not result.fnParams.hasKey(pIdent.value)):
         let pNode = p.parseVarIdent(tk, pIdent, vtVar, isArg = true, hasDocType = hasDocType)
         expectNotNil pNode:
+          pNode.varArg = true
           result.fnParams[pIdent.value] = pNode
-          if p.curr in {tkComma, tkSColon}: walk p
+          if p.curr in {tkComma, tkSemiColon}: walk p
       else: errorWithArgs(redefineParameter, pIdent, [pIdent.value])
     expectWalkOrNil(tkRP)
 
@@ -126,4 +127,8 @@ newPrefix parseFunction:
       return nil
     else: discard
     walk p
+
+newPrefix parseFunction:
+  let tk = p.curr
+  result = p.parseFunctionDecl()
   stmtBody(result.fnBody, excludes = {tkImport, tkInclude, tkExport})

@@ -6,10 +6,3 @@
 #          https://github.com/lesscript
 #          https://lesscript.com
 
-newPrefix parseBlockComment:
-  # Parse comments
-  var commentNode = ast.newComment(p.curr)
-  walk p
-  if p.curr in {tkFnDef, tkFuncDef, tkFunctionDef}:
-    return p.parseFunction(parent = commentNode)
-  result = commentNode

@@ -19,9 +19,9 @@ newPrefix parseTypeDef:
       if p.curr in litTokens:
         typeLit = getType(p.curr)
         walk p
-        if typeLit == tObject:
-          stmtTree(result.typeNode)
+        # if typeLit == tObject:
+        #   stmtTree(result.typeNode)
         result.typeLit = typeLit
-      else:
-        stmtTree(result.typeNode)
+      # else:
+        # stmtTree(result.typeNode)
     else: return nil

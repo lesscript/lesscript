@@ -75,6 +75,7 @@ type
     tInt32 = "int32"
     tInt64 = "int64"
     tBigInt = "bigint"
+    tNumber = "number" # either int, bigint or float
     tInterface = "interface"
     tObject = "object"
     tString = "string"
@@ -140,14 +141,14 @@ type
     # todo
     # of tFloat8:   vFloat8*: float8 
     # of tFloat16:  vFloat16*: float16
-    of tFloat32:  vFloat32*: float32
-    of tFloat64:  vFloat64*: float64
     of tInt:      vInt*: int
     of tInt8:     vInt8*: int8
     of tInt16:    vInt16*: int16
     of tInt32:    vInt32*: int32
     of tInt64:    vInt64*: int64
     of tBigInt:   vBint*: BigInt
+    of tFloat32:  vFloat32*: float32
+    of tFloat64:  vFloat64*: float64
     of tRange:    vRangeValue*: tuple[min, max: TokenTuple] # tkInteger / tkFloat
     else: discard
 
@@ -178,7 +179,7 @@ type
       valTypeof*: Node # ntIdentifier
       varValue*: Node
       varInline*, varOthers*: seq[Node] # ntVarDecl
-      varUsed*: bool
+      varArg*: bool
     of ntAssign:
       asgnIdent*, asgnValue*: Node
     of ntTypeDef:
@@ -271,7 +272,7 @@ type
     of ntInfixMath:
       infixMathOp*: MathOp
       lhsMath*, rhsMath*: Node
-      infixMathResultType*: NodeType # either ntInt or ntFloat
+      infixMathResultType*: Type # tFloat..tBigInt
     of ntDocComment:
       commentBlock*: string
       commentBlockParams*: seq[string]
@@ -326,6 +327,7 @@ proc getType*(node: Node): Type =
   of ntFuncDef: tFunction
   of ntClassDef: tClass
   of objectDecl: tObject
+  of ntInfix: tBool
   of arrayDecl: tArray
   of ntVarDecl:
     case node.valType
@@ -434,13 +436,13 @@ proc newUnpack*(fromVal: Node, toVars: seq[Node]): Node =
   ## Create a new `ntUnpack` node
   Node(nt: ntUnpack, unpackFrom: fromVal, unpackTo: toVars)
 
-proc newInfix*(lht: Node): Node =
+proc newInfix*(lhs: Node): Node =
   ## Returns an incomplete `ntInfix` node
-  Node(nt: ntInfix, lhsInfix: lht)
+  Node(nt: ntInfix, lhsInfix: lhs)
 
-proc newInfixMath*(lht: Node): Node =
+proc newInfixMath*(lhs: Node): Node =
   ## Create a new `ntInfixMath` node
-  Node(nt: ntInfixMath, lhsMath: lht)
+  Node(nt: ntInfixMath, lhsMath: lhs, meta: lhs.meta)
 
 proc newIfCond*(ifBranch: ConditionBranch, tk: TokenTuple): Node =
   ## Create a new `ntIf` node

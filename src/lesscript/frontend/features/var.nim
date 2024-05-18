@@ -74,7 +74,7 @@ proc parseVarIdent(p: var Parser, tk, ident: TokenTuple,
         # set type from `varValue` if not provided
         implType = varValue.getType
       isTypedOrDefault = true
-    of tkComma, tkSColon:
+    of tkComma, tkSemiColon:
       # parse other identifiers separated by `,` or `;`
       if isArg: break
       if likely(p.next is tkIdentifier):

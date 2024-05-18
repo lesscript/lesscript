@@ -170,7 +170,7 @@ registerTokens toktokSettings:
   lc = '{'
   rc = '}'
   colon = ':'
-  scolon = ';'
+  semiColon = ';'
   comma = ','
   dot = '.'
   at = '@':
@@ -198,6 +198,7 @@ registerTokens toktokSettings:
   litRange = "range"
   litNull = "null"
   litNil = "nil"
+  litNumber = "number"
 
   litNatural = "Natural"
   litOrdinal = "Ordinal"
